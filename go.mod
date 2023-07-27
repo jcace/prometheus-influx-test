@@ -1,3 +1,3 @@
-module github.com/jcace/go-grafana-influx-test
+module github.com/jcace/prometheus-influx-test
 
-go 1.18
+go 1.19
