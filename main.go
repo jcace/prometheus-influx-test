@@ -5,6 +5,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"time"
+
+	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 // UPDATE IN CONNECTION INFO HERE
@@ -17,14 +20,18 @@ const (
 // ###############
 
 func main() {
+	url := baseUrl + "/write"
+
 	// * Line protocol https://docs.influxdata.com/influxdb/cloud/reference/syntax/line-protocol/#elements-of-line-protocol
 	// Prometheus-specific note: using `fieldKey` of `value` i.e, `value=123.45`, will have Grafana name the measurement as simply the Measurement name example: sandbox
 	// All other `fieldKey`s will be appended to the measurement name, separated by an underscore, example: `metric=123.45` -> `sandbox_metric` in Prometheus/Grafana
-	body := "sandbox,label1=abc,label2=123 metric_1=154.45,metric_2=32.42"
+	//// body := "sandbox,label1=abc,label2=123 metric_1=154.45,metric_2=32.42"
+
+	body := assemble_line_protocol()
 
 	// Prepare the request
-	url := baseUrl + "/write"
-	req, err := http.NewRequest("POST", url, bytes.NewBufferString(body))
+	// req, err := http.NewRequest("POST", url, bytes.NewBufferString(body))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return
@@ -49,4 +56,22 @@ func main() {
 	// Get the response status code
 	statusCode := resp.StatusCode
 	fmt.Println(statusCode)
+}
+
+func assemble_line_protocol() []byte {
+	var enc lineprotocol.Encoder
+	// ! MUST set to Millisecond precision, Grafana cloud does not support any higher - https://grafana.com/docs/grafana-cloud/data-configuration/metrics/metrics-influxdb/push-from-telegraf/#current-limitations
+	enc.SetPrecision(lineprotocol.Millisecond)
+	enc.StartLine("sandbox")
+	enc.AddTag("label1", "abc")
+	enc.AddTag("label2", "123")
+	enc.AddField("metric_1", lineprotocol.MustNewValue(123.45))
+	enc.EndLine(time.Time{})
+	if err := enc.Err(); err != nil {
+		panic(fmt.Errorf("encoding error: %v", err))
+	}
+
+	fmt.Printf("encoded: %s", enc.Bytes())
+
+	return enc.Bytes()
 }
