@@ -1,6 +1,13 @@
 package main
 
+import "fmt"
+
 func main() {
-	// grafana_poc()
-	InfluxPoc()
+	err := PostToPrometheus()
+
+	if err != nil {
+		fmt.Println("failure: " + err.Error())
+	} else {
+		fmt.Println("success!")
+	}
 }
