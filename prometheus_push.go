@@ -23,7 +23,7 @@ func PostToPrometheus() error {
 	fmt.Println("Prometheus (Influx Line Proto) Tester")
 	url := baseUrl + "/write"
 
-	body := assemble_sample_line_proto_payload()
+	body := assemble_sample_payload()
 
 	// Prepare the request
 	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
@@ -57,10 +57,8 @@ func PostToPrometheus() error {
 // * Line protocol https://docs.influxdata.com/influxdb/cloud/reference/syntax/line-protocol/#elements-of-line-protocol
 // Prometheus-specific note: using `fieldKey` of `value` i.e, `value=123.45`, will have Grafana name the measurement as simply the Measurement name example: sandbox
 // All other `fieldKey`s will be appended to the measurement name, separated by an underscore, example: `metric=123.45` -> `sandbox_metric` in Prometheus/Grafana
-func assemble_sample_line_proto_payload() []byte {
+func assemble_sample_payload() []byte {
 	var enc lineprotocol.Encoder
-	// ! MUST set to Millisecond precision, Grafana cloud does not support any higher - https://grafana.com/docs/grafana-cloud/data-configuration/metrics/metrics-influxdb/push-from-telegraf/#current-limitations
-	enc.SetPrecision(lineprotocol.Millisecond)
 
 	// The name of the measurement
 	enc.StartLine("sandbox")
@@ -75,10 +73,11 @@ func assemble_sample_line_proto_payload() []byte {
 	// * unsigned int
 	// * signed int
 	// * float
-	enc.AddField("metric_1", lineprotocol.MustNewValue(false))
+	enc.AddField("metric_1", lineprotocol.MustNewValue(true))
 
 	// Timestamp
-	enc.EndLine(time.Time{})
+	// Note: Grafana only support ms precision - https://grafana.com/docs/grafana-cloud/data-configuration/metrics/metrics-influxdb/push-from-telegraf/#current-limitations
+	enc.EndLine(time.Now())
 
 	// Encode and check for errors
 	if err := enc.Err(); err != nil {
