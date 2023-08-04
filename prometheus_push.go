@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"encoding/base64"
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,7 +11,7 @@ import (
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
-func PostToPrometheus() error {
+func PostToPrometheus(ctx context.Context) error {
 	userID := os.Getenv("PROM_USER_ID")
 	apiKey := os.Getenv("PROM_API_KEY")
 	baseUrl := os.Getenv("PROM_BASE_URL")
@@ -31,12 +31,13 @@ func PostToPrometheus() error {
 		return fmt.Errorf("error creating request: %v", err)
 	}
 
+	req = req.WithContext(ctx)
+
 	// Set the necessary headers
 	req.Header.Set("Content-Type", "text/plain")
 
 	// Encode the authentication credentials (Basic Auth)
-	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", userID, apiKey)))
-	req.Header.Set("Authorization", "Basic "+auth)
+	req.SetBasicAuth(userID, apiKey)
 
 	// Send the request
 	client := &http.Client{}
@@ -73,7 +74,7 @@ func assemble_sample_payload() []byte {
 	// * unsigned int
 	// * signed int
 	// * float
-	enc.AddField("metric_1", lineprotocol.MustNewValue(true))
+	enc.AddField("metric_1", lineprotocol.MustNewValue(1.0))
 
 	// Timestamp
 	// Note: Grafana only support ms precision - https://grafana.com/docs/grafana-cloud/data-configuration/metrics/metrics-influxdb/push-from-telegraf/#current-limitations

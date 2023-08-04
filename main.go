@@ -1,9 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 func main() {
-	err := PostToPrometheus()
+	err := PostToPrometheus(context.TODO())
 
 	if err != nil {
 		fmt.Println("failure: " + err.Error())
